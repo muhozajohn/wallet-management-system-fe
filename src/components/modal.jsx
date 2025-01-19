@@ -1,27 +1,41 @@
-import React, { useState } from "react";
-import { validateCompany } from "../utils/validation";
+import React, { useEffect, useState } from "react";
 import { useFormik } from "formik";
 import { useDispatch } from "react-redux";
-import { CreateCompany } from "../redux/actionCreater";
+import {
+  createAccount,
+  getAccountTypeBalances,
+} from "../redux/account/accountSlice";
+import { validateAccount } from "../utils/validation";
+import Input from "./input";
+import Spinner from "./Spinner";
+
 const Modal = ({ isOpen, onClose, title }) => {
   const [agreeterm, agreementchange] = useState(false);
   const dispatch = useDispatch();
+  const [isLoading, setIsLoading] = useState(false);
 
   const formik = useFormik({
-    validate: validateCompany,
+    validate: validateAccount,
     initialValues: {
       name: "",
-      email: "",
-      address: "",
       type: "",
-      phone: "",
+      currentBalance: "" || "0.00",
+      currency: "",
     },
     onSubmit: async (values) => {
-      dispatch(CreateCompany(values));
+      await dispatch(createAccount(values));
+      dispatch(getAccountTypeBalances());
+      setIsLoading(true);
       formik.resetForm();
       onClose();
     },
   });
+
+  useEffect(() => {
+    if (!isOpen) {
+      agreementchange(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -54,14 +68,16 @@ const Modal = ({ isOpen, onClose, title }) => {
         {/* Modal Body */}
         <form onSubmit={formik.handleSubmit} className="space-y-4">
           <div>
-            <input
-              type="text"
+            <Input
+              type="input"
+              inputType="text"
+              label="Account name"
               id="name"
               onBlur={formik.handleBlur}
-              value={formik.values.name}
+              values={formik.values.name}
               onChange={formik.handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter name..."
+              placeholder="Enter account name..."
             />
             {formik.touched.name && formik.errors.name ? (
               <p className="text-sm text-red-600 font-normal">
@@ -69,89 +85,73 @@ const Modal = ({ isOpen, onClose, title }) => {
               </p>
             ) : null}
           </div>
+
           <div>
-            <input
-              type="email"
-              id="email"
+            <Input
+              type="input"
+              inputType="number"
+              label="Current Balance"
+              step="0.01"
+              id="currentBalance"
               onBlur={formik.handleBlur}
-              value={formik.values.email}
+              values={formik.values.currentBalance}
               onChange={formik.handleChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter email..."
+              placeholder="Enter current balance..."
             />
-            {formik.touched.email && formik.errors.email ? (
+            {formik.touched.currentBalance && formik.errors.currentBalance ? (
               <p className="text-sm text-red-600 font-normal">
-                {formik.errors.email}
-              </p>
-            ) : null}
-          </div>
-          <div>
-            <input
-              type="text"
-              id="phone"
-              onBlur={formik.handleBlur}
-              value={formik.values.phone}
-              onChange={formik.handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter phone number..."
-            />
-            {formik.touched.phone && formik.errors.phone ? (
-              <p className="text-sm text-red-600 font-normal">
-                {formik.errors.phone}
-              </p>
-            ) : null}
-          </div>
-          <div>
-            <input
-              type="text"
-              id="address"
-              onBlur={formik.handleBlur}
-              value={formik.values.address}
-              onChange={formik.handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter address..."
-            />
-            {formik.touched.address && formik.errors.address ? (
-              <p className="text-sm text-red-600 font-normal">
-                {formik.errors.address}
+                {formik.errors.currentBalance}
               </p>
             ) : null}
           </div>
 
-          <div className="flex flex-col space-y-2">
-            <label className="flex items-center space-x-2">
-              <input
-                type="radio"
-                name="type"
-                id="type"
-                value="MNC"
-                checked={formik.values.type === "MNC"}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                className="w-4 h-4 text-blue-500 focus:ring-blue-500 border-gray-300"
-              />
-              <span className="text-gray-700">MNC</span>
-            </label>
+          <div>
+            <label htmlFor="">Currency</label>
+            <select
+              id="currency"
+              name="currency"
+              value={formik.values.currency}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option>Select Currency</option>
+              <option value="FRW">FRW</option>
+              <option value="USD">USD</option>
+              <option value="BTC">BTC</option>
+            </select>
+            {formik.touched.currency && formik.errors.currency ? (
+              <p className="text-sm text-red-600 font-normal">
+                {formik.errors.currency}
+              </p>
+            ) : null}
+          </div>
 
-            <label className="flex items-center space-x-2">
-              <input
-                type="radio"
-                name="type"
-                id="type"
-                value="DOMESTIC"
-                checked={formik.values.type === "DOMESTIC"}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                className="w-4 h-4 text-blue-500 focus:ring-blue-500 border-gray-300"
-              />
-              <span className="text-gray-700">DOMESTIC</span>
-            </label>
+          <div>
+            <label htmlFor="">Account Type</label>
+            <select
+              id="type"
+              name="type"
+              value={formik.values.type}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option>Select Account Type</option>
+              <option value="BANK">Bank</option>
+              <option value="MOBILE_MONEY">Mobile Money</option>
+              <option value="CASH">Cash</option>
+              <option value="CRYPTO">Crypto</option>
+              <option value="OTHER">Other</option>
+            </select>
             {formik.touched.type && formik.errors.type ? (
               <p className="text-sm text-red-600 font-normal">
                 {formik.errors.type}
               </p>
             ) : null}
           </div>
+
           <label className="flex items-center space-x-2">
             <input
               type="checkbox"
@@ -182,7 +182,11 @@ const Modal = ({ isOpen, onClose, title }) => {
                 : "bg-gray-400 cursor-not-allowed focus:ring-gray-400"
             }`}
           >
-            Submit
+            {isLoading ? (
+              <Spinner classes={` !text-black !h-6 !w-6`} />
+            ) : (
+              "Create"
+            )}
           </button>
         </div>
       </div>

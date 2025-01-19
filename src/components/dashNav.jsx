@@ -10,14 +10,17 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import { logout } from "../redux/auth/authSlice";
+import { useDispatch } from "react-redux";
 
 const DashNav = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleLogout = () => {
-    localStorage.clear();
-    navigate('/login');
+    dispatch(logout());
+    navigate("/login");
   };
 
   const nav = [
