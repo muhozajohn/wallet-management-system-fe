@@ -34,3 +34,38 @@ export const validateAuth = (values) => {
 
   return errors;
 };
+
+
+export const validateAccount = (values) => {
+  let errors = {};
+
+  // Validate name
+  if (!values.name) {
+    errors.name = "Account name is required";
+  } else if (typeof values.name !== 'string') {
+    errors.name = "Account name must be a string";
+  }
+
+  // Validate type (assuming AccountType is an enum)
+  if (!values.type) {
+    errors.type = "Account type is required";
+  }
+
+  // Validate current balance
+  if (values.currentBalance !== undefined) {
+    const balance = parseFloat(values.currentBalance);
+    if (isNaN(balance)) {
+      errors.currentBalance = "Current balance must be a valid number";
+    } 
+  }
+
+  // Validate currency
+  if (!values.currency) {
+    errors.currency = "Currency is required";
+  } else if (typeof values.currency !== 'string') {
+    errors.currency = "Currency must be a string";
+  }
+
+
+  return errors;
+};
