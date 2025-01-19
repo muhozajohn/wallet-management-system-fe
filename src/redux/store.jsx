@@ -3,6 +3,7 @@ import loginReducer from "./auth/authSlice";
 import accountReducer from "./account/accountSlice";
 import transactionReducer from "./transaction/tansactionSlice";
 import categoryReducer from "./category/categorySlice";
+import budgetReducer from "./budget/budgetSlice";
 
 const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ const store = configureStore({
     account: accountReducer,
     transaction: transactionReducer,
     category: categoryReducer,
+    budget: budgetReducer,
   },
 });
 
