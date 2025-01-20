@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useMemo } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -17,17 +18,107 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import Button from "../components/button";
+import {
+  getAllTransactions,
+  selectTransactions
+} from "../redux/transaction/tansactionSlice";
 
 const Dashboard = () => {
-  // Sample data - replace with real data from your backend
-  const chartData = [
-    { name: "Jan", expenses: 4000, income: 4400 },
-    { name: "Feb", expenses: 3000, income: 4200 },
-    { name: "Mar", expenses: 5000, income: 4800 },
-    { name: "Apr", expenses: 2780, income: 3908 },
-    { name: "May", expenses: 1890, income: 4800 },
-    { name: "Jun", expenses: 2390, income: 3800 },
-  ];
+  const dispatch = useDispatch();
+  const transactions = useSelector(selectTransactions);
+
+  useEffect(() => {
+    dispatch(getAllTransactions());
+  }, [dispatch]);
+
+  // Compute statistics and period changes from transactions
+  const stats = useMemo(() => {
+    // Get current and previous month dates
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    // Split transactions by period
+    const currentMonthTransactions = transactions.filter(t => 
+      new Date(t.transactionDate) >= currentMonthStart
+    );
+    const previousMonthTransactions = transactions.filter(t => 
+      new Date(t.transactionDate) >= previousMonthStart && 
+      new Date(t.transactionDate) < currentMonthStart
+    );
+
+    // Calculate totals for current period
+    const totalIncome = currentMonthTransactions
+      .filter(t => t.type === "INCOME")
+      .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    
+    const totalExpenses = currentMonthTransactions
+      .filter(t => t.type === "EXPENSE")
+      .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    
+    const totalBalance = totalIncome - totalExpenses;
+
+    // Calculate previous period totals
+    const previousIncome = previousMonthTransactions
+      .filter(t => t.type === "INCOME")
+      .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    
+    const previousExpenses = previousMonthTransactions
+      .filter(t => t.type === "EXPENSE")
+      .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    
+    const previousBalance = previousIncome - previousExpenses;
+
+    // Calculate percentage changes
+    const calculatePercentageChange = (current, previous) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return ((current - previous) / Math.abs(previous)) * 100;
+    };
+
+    const incomeChange = calculatePercentageChange(totalIncome, previousIncome);
+    const expensesChange = calculatePercentageChange(totalExpenses, previousExpenses);
+    const balanceChange = calculatePercentageChange(totalBalance, previousBalance);
+
+    return {
+      totalIncome,
+      totalExpenses,
+      totalBalance,
+      incomeChange: incomeChange.toFixed(1),
+      expensesChange: expensesChange.toFixed(1),
+      balanceChange: balanceChange.toFixed(1)
+    };
+  }, [transactions]);
+
+  // Prepare chart data from transactions
+  const chartData = useMemo(() => {
+    const monthlyData = {};
+    
+    transactions.forEach(transaction => {
+      const month = new Date(transaction.transactionDate).toLocaleString('default', { month: 'short' });
+      if (!monthlyData[month]) {
+        monthlyData[month] = { name: month, income: 0, expenses: 0 };
+      }
+      
+      const amount = parseFloat(transaction.amount);
+      if (transaction.type === "INCOME") {
+        monthlyData[month].income += amount;
+      } else {
+        monthlyData[month].expenses += amount;
+      }
+    });
+
+    return Object.values(monthlyData);
+  }, [transactions]);
+
+  // Format currency with symbol based on the account's currency
+  const formatCurrency = (amount, currency = "USD") => {
+    const symbols = {
+      USD: "$",
+      FRW: "FRW",
+      BTC: "BTC",
+    };
+    return `${symbols[currency] || "$"}${parseFloat(amount).toLocaleString()}`;
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -39,6 +130,7 @@ const Dashboard = () => {
 
         <Button
           title="+ Add Transaction"
+          path="/dashboard/transactions"
           styles="text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
         />
       </div>
@@ -54,10 +146,18 @@ const Dashboard = () => {
             <Wallet className="w-4 h-4 text-slate-600" />
           </div>
           <div className="mt-2">
-            <div className="text-2xl font-bold">$12,450</div>
-            <div className="flex items-center pt-1 text-sm text-green-600">
-              <ArrowUpRight className="w-4 h-4" />
-              <span>+12.5%</span>
+            <div className="text-2xl font-bold">
+              {formatCurrency(stats.totalBalance)}
+            </div>
+            <div className={`flex items-center pt-1 text-sm ${
+              parseFloat(stats.balanceChange) >= 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {parseFloat(stats.balanceChange) >= 0 ? (
+                <ArrowUpRight className="w-4 h-4" />
+              ) : (
+                <ArrowDownRight className="w-4 h-4" />
+              )}
+              <span>{stats.balanceChange > 0 ? '+' : ''}{stats.balanceChange}%</span>
             </div>
           </div>
         </div>
@@ -69,10 +169,18 @@ const Dashboard = () => {
             <TrendingUp className="w-4 h-4 text-slate-600" />
           </div>
           <div className="mt-2">
-            <div className="text-2xl font-bold">$4,800</div>
-            <div className="flex items-center pt-1 text-sm text-green-600">
-              <ArrowUpRight className="w-4 h-4" />
-              <span>+8.2%</span>
+            <div className="text-2xl font-bold">
+              {formatCurrency(stats.totalIncome)}
+            </div>
+            <div className={`flex items-center pt-1 text-sm ${
+              parseFloat(stats.incomeChange) >= 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {parseFloat(stats.incomeChange) >= 0 ? (
+                <ArrowUpRight className="w-4 h-4" />
+              ) : (
+                <ArrowDownRight className="w-4 h-4" />
+              )}
+              <span>{stats.incomeChange > 0 ? '+' : ''}{stats.incomeChange}%</span>
             </div>
           </div>
         </div>
@@ -84,10 +192,18 @@ const Dashboard = () => {
             <ArrowLeftRight className="w-4 h-4 text-slate-600" />
           </div>
           <div className="mt-2">
-            <div className="text-2xl font-bold">$2,390</div>
-            <div className="flex items-center pt-1 text-sm text-red-600">
-              <ArrowDownRight className="w-4 h-4" />
-              <span>-4.3%</span>
+            <div className="text-2xl font-bold">
+              {formatCurrency(stats.totalExpenses)}
+            </div>
+            <div className={`flex items-center pt-1 text-sm ${
+              parseFloat(stats.expensesChange) <= 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {parseFloat(stats.expensesChange) >= 0 ? (
+                <ArrowUpRight className="w-4 h-4" />
+              ) : (
+                <ArrowDownRight className="w-4 h-4" />
+              )}
+              <span>{stats.expensesChange > 0 ? '+' : ''}{stats.expensesChange}%</span>
             </div>
           </div>
         </div>
@@ -101,9 +217,16 @@ const Dashboard = () => {
             <PieChart className="w-4 h-4 text-slate-600" />
           </div>
           <div className="mt-2">
-            <div className="text-2xl font-bold">75%</div>
+            <div className="text-2xl font-bold">
+              {Math.round((stats.totalExpenses / stats.totalIncome) * 100)}%
+            </div>
             <div className="w-full h-2 mt-2 bg-slate-200 rounded-full">
-              <div className="w-3/4 h-2 bg-blue-600 rounded-full"></div>
+              <div 
+                className="h-2 bg-blue-600 rounded-full" 
+                style={{ 
+                  width: `${Math.min((stats.totalExpenses / stats.totalIncome) * 100, 100)}%` 
+                }}
+              ></div>
             </div>
           </div>
         </div>
@@ -140,9 +263,9 @@ const Dashboard = () => {
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
         <div className="space-y-4">
-          {[1, 2, 3].map((_, i) => (
+          {transactions.slice(0, 5).map((transaction) => (
             <div
-              key={i}
+              key={transaction.id}
               className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
             >
               <div className="flex items-center space-x-4">
@@ -150,11 +273,18 @@ const Dashboard = () => {
                   <ArrowLeftRight className="w-4 h-4 text-blue-600" />
                 </div>
                 <div>
-                  <div className="font-medium">Online Purchase</div>
-                  <div className="text-sm text-slate-500">Amazon</div>
+                  <div className="font-medium">{transaction.description}</div>
+                  <div className="text-sm text-slate-500">
+                    {transaction.account.name} - {transaction.category.name}
+                  </div>
                 </div>
               </div>
-              <div className="text-red-600 font-medium">-$250.00</div>
+              <div className={`font-medium ${
+                transaction.type === "EXPENSE" ? "text-red-600" : "text-green-600"
+              }`}>
+                {transaction.type === "EXPENSE" ? "-" : "+"}
+                {formatCurrency(transaction.amount, transaction.account.currency)}
+              </div>
             </div>
           ))}
         </div>
