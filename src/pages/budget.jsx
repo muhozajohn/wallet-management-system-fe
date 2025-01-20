@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   getAllbudgets,
@@ -6,12 +6,14 @@ import {
   selectbudgetLoading,
   selectbudgetError,
 } from "../redux/budget/budgetSlice";
+import AddBudgetModal from "../components/AddBudgetModal";
 
 const Budget = () => {
   const dispatch = useDispatch();
   const budgets = useSelector(selectbudgets);
   const loading = useSelector(selectbudgetLoading);
   const error = useSelector(selectbudgetError);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     dispatch(getAllbudgets());
@@ -43,7 +45,10 @@ const Budget = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Budget Dashboard</h1>
-        <button className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        >
           <svg
             className="w-5 h-5"
             fill="none"
@@ -89,7 +94,9 @@ const Budget = () => {
 
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-500">Active Budgets</h3>
+            <h3 className="text-sm font-medium text-gray-500">
+              Active Budgets
+            </h3>
             <svg
               className="w-4 h-4 text-gray-400"
               fill="none"
@@ -153,13 +160,19 @@ const Budget = () => {
                   <td className="p-4 text-sm text-gray-900">
                     {new Date(budget.endDate).toLocaleDateString()}
                   </td>
-                  <td className="p-4 text-sm text-gray-900">{budget.currency}</td>
+                  <td className="p-4 text-sm text-gray-900">
+                    {budget.currency}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+      <AddBudgetModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 };
