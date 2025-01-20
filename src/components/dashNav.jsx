@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  Bell,
+  Settings,
   Wallet,
   ArrowLeftRight,
   PieChart,
@@ -40,9 +40,9 @@ const DashNav = () => {
       icon: <PieChart className="w-5 h-5" />,
     },
     {
-      name: "Notifications",
-      path: "/dashboard/notifications",
-      icon: <Bell className="w-5 h-5" />,
+      name: "Settings",
+      path: "/dashboard/settings",
+      icon: <Settings className="w-5 h-5" />,
     },
   ];
 
