@@ -10,9 +10,9 @@ import Dashboard from "../pages/dashboard";
 import Account from "../pages/account";
 import Transaction from "../pages/transaction";
 import Budget from "../pages/budget";
-import Notification from "../pages/notification";
 import Profile from "../pages/profile";
 import ProtectedRoute from "../components/ProtectedRoute";
+import Settings from "../pages/settings";
 
 const AppRoutes = () => {
   return (
@@ -38,7 +38,7 @@ const AppRoutes = () => {
           <Route path="/dashboard/accounts" element={<Account />} />
           <Route path="/dashboard/transactions" element={<Transaction />} />
           <Route path="/dashboard/budget" element={<Budget />} />
-          <Route path="/dashboard/notifications" element={<Notification />} />
+          <Route path="/dashboard/settings" element={<Settings />} />
           <Route path="/dashboard/profile" element={<Profile />} />
         </Route>
 
